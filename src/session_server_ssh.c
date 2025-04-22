@@ -625,11 +625,9 @@ static int
 nc_server_ssh_compare_password(const char *stored_pw, const char *received_pw)
 {
     char *received_pw_hash = NULL;
-    static struct crypt_data cdata;
+    struct crypt_data *cdata;
 
     NC_CHECK_ARG_RET(NULL, stored_pw, received_pw, 1);
-
-    memset(&cdata, 0, sizeof(struct crypt_data));
 
     if (!stored_pw[0]) {
         if (!received_pw[0]) {
@@ -647,7 +645,13 @@ nc_server_ssh_compare_password(const char *stored_pw, const char *received_pw)
         return strcmp(stored_pw + 3, received_pw);
     }
 
+    cdata = (struct crypt_data *) calloc(sizeof(struct crypt_data), 1);
+    if (cdata == NULL) {
+        return 1;
+    }
+
     received_pw_hash = crypt_r(received_pw, stored_pw, &cdata);
+    free(cdata);
     if (!received_pw_hash) {
         ERR(NULL, "Hashing the password failed (%s).", strerror(errno));
         return 1;
